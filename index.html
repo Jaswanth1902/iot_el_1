@@ -1,0 +1,1081 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Smart Vaccine Cold Chain Monitoring System</title>
+  <meta name="description" content="Enterprise-grade real-time vaccine cold chain monitoring — temperature, GPS, door security, alerts, and AI insights." />
+  <meta name="theme-color" content="#040d1a" />
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
+  <!-- App CSS -->
+  <link rel="stylesheet" href="css/style.css" />
+
+  <style>
+    /* ── Leaflet Theme Overrides ── */
+    .leaflet-popup-content-wrapper {
+      background: var(--clr-surface) !important;
+      border: 1px solid var(--clr-border) !important;
+      border-radius: 10px;
+      color: var(--clr-text) !important;
+      backdrop-filter: blur(8px);
+      box-shadow: var(--shadow-card);
+    }
+    .leaflet-popup-tip { background: var(--clr-surface) !important; }
+    .leaflet-control-zoom a {
+      background: var(--clr-surface) !important;
+      color: var(--clr-blue-bright) !important;
+      border-color: var(--clr-border) !important;
+    }
+    .leaflet-control-zoom a:hover { background: var(--clr-card2) !important; }
+    .leaflet-bar { border-color: var(--clr-border) !important; }
+
+    /* ── Loading Screen ── */
+    #loading-screen {
+      position: fixed;
+      inset: 0;
+      background: #040d1a;
+      z-index: 99999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1.5rem;
+      transition: opacity .5s ease, visibility .5s ease;
+    }
+    #loading-screen.hidden { opacity: 0; visibility: hidden; }
+
+    .loading-logo {
+      width: 80px; height: 80px;
+      background: linear-gradient(135deg, #1565c0, #00bcd4);
+      border-radius: 24px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 2.5rem;
+      box-shadow: 0 0 60px rgba(0,188,212,.4);
+      animation: logo-pulse 1.5s ease-in-out infinite;
+    }
+    @keyframes logo-pulse {
+      0%,100% { box-shadow: 0 0 40px rgba(0,188,212,.35); transform: scale(1); }
+      50%      { box-shadow: 0 0 80px rgba(0,188,212,.6);  transform: scale(1.04); }
+    }
+    .loading-title {
+      font-size: 1rem;
+      font-weight: 800;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      background: linear-gradient(90deg, #fff, #42a5f5, #00bcd4);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .loading-bar-wrap {
+      width: 220px; height: 3px;
+      background: rgba(255,255,255,.06);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .loading-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #1565c0, #00bcd4);
+      border-radius: 2px;
+      animation: loading-progress 2s ease forwards;
+    }
+    @keyframes loading-progress { from { width: 0; } to { width: 100%; } }
+    .loading-status {
+      font-size: .7rem;
+      color: #4a6a8a;
+      letter-spacing: .1em;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* ── Sidebar ── */
+    #sidebar {
+      position: fixed;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 60px;
+      background: rgba(4,13,26,.97);
+      border-right: 1px solid rgba(26,58,92,.5);
+      z-index: 150;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 1rem 0;
+      gap: .25rem;
+      backdrop-filter: blur(12px);
+      transition: width .3s cubic-bezier(.4,0,.2,1);
+      overflow: hidden;
+    }
+    #sidebar:hover, #sidebar.expanded {
+      width: 210px;
+    }
+    .sidebar-logo {
+      width: 36px; height: 36px;
+      background: linear-gradient(135deg, #1565c0, #00bcd4);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.1rem;
+      margin-bottom: .75rem;
+      flex-shrink: 0;
+      box-shadow: 0 0 15px rgba(0,188,212,.3);
+    }
+    .sidebar-divider {
+      width: 30px;
+      height: 1px;
+      background: rgba(26,58,92,.6);
+      margin: .4rem 0;
+      flex-shrink: 0;
+      transition: width .3s;
+    }
+    #sidebar:hover .sidebar-divider { width: 170px; }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+      width: 36px;
+      height: 36px;
+      padding: 0 .6rem;
+      border-radius: 10px;
+      cursor: pointer;
+      text-decoration: none;
+      color: #4a6a8a;
+      font-size: .75rem;
+      font-weight: 600;
+      font-family: 'Inter', sans-serif;
+      white-space: nowrap;
+      overflow: hidden;
+      transition: background .2s, color .2s, width .3s cubic-bezier(.4,0,.2,1);
+      flex-shrink: 0;
+    }
+    #sidebar:hover .nav-item { width: 186px; }
+    .nav-item i { font-size: .8rem; flex-shrink: 0; min-width: 14px; text-align: center; }
+    .nav-item:hover, .nav-item.active {
+      background: rgba(21,101,192,.2);
+      color: #42a5f5;
+    }
+    .nav-item.active { border-left: 2px solid #42a5f5; }
+
+    .nav-label { opacity: 0; transition: opacity .25s .1s; white-space: nowrap; }
+    #sidebar:hover .nav-label { opacity: 1; }
+
+    .sidebar-spacer { flex: 1; }
+
+    /* ── Main layout shift for sidebar ── */
+    body { padding-left: 60px; }
+    #main-header { left: 60px; right: 0; }
+
+    /* ── Fleet Table ── */
+    .fleet-table { width: 100%; border-collapse: collapse; }
+    .fleet-table th {
+      background: rgba(0,0,0,.3);
+      padding: .55rem .75rem;
+      text-align: left;
+      font-size: .65rem;
+      font-weight: 700;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: #4a6a8a;
+      border-bottom: 1px solid rgba(26,58,92,.6);
+      white-space: nowrap;
+    }
+    .fleet-table td {
+      padding: .6rem .75rem;
+      font-size: .78rem;
+      border-bottom: 1px solid rgba(26,58,92,.25);
+      color: #e8f4ff;
+    }
+    .fleet-table tr:hover td { background: rgba(21,101,192,.06); }
+    .fleet-table tr:last-child td { border-bottom: none; }
+
+    .box-status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: .3rem;
+      padding: .18rem .55rem;
+      border-radius: 20px;
+      font-size: .65rem;
+      font-weight: 700;
+      letter-spacing: .06em;
+    }
+    .box-status-pill.safe    { background: rgba(0,230,118,.12); color: #00e676; border: 1px solid rgba(0,230,118,.3); }
+    .box-status-pill.alert   { background: rgba(244,67,54,.12);  color: #ef5350; border: 1px solid rgba(244,67,54,.3); }
+    .box-status-pill.warning { background: rgba(255,152,0,.12);  color: #ff9800; border: 1px solid rgba(255,152,0,.3); }
+    .box-status-pill.transit { background: rgba(66,165,245,.12); color: #42a5f5; border: 1px solid rgba(66,165,245,.3); }
+
+    .temp-indicator {
+      display: flex; align-items: center; gap: .4rem;
+      font-family: 'JetBrains Mono', monospace; font-weight: 500;
+    }
+    .temp-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+    .temp-dot.safe    { background: #00e676; box-shadow: 0 0 4px #00e676; }
+    .temp-dot.alert   { background: #f44336; box-shadow: 0 0 4px #f44336; animation: pulse-dot 1s infinite; }
+    .temp-dot.warning { background: #ff9800; box-shadow: 0 0 4px #ff9800; }
+
+    /* ── SVG Gauge ── */
+    .gauge-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .gauge-svg { overflow: visible; }
+    .gauge-arc-bg   { fill: none; stroke: rgba(255,255,255,.06); stroke-linecap: round; }
+    .gauge-arc-fill { fill: none; stroke-linecap: round; transition: stroke-dashoffset 1s cubic-bezier(.4,0,.2,1), stroke 1s ease; }
+    .gauge-text-val { font-family: 'JetBrains Mono',monospace; font-weight: 900; fill: #e8f4ff; text-anchor: middle; }
+    .gauge-text-unit { font-family: 'Inter',sans-serif; font-weight: 500; fill: #4a6a8a; text-anchor: middle; }
+    .gauge-text-label { font-family: 'Inter',sans-serif; font-weight: 600; fill: #8bacc8; text-anchor: middle; letter-spacing: .06em; }
+
+    /* ── Scrollable fleet table ── */
+    .fleet-scroll { max-height: 340px; overflow-y: auto; }
+
+    /* ── Tab bar for multi-box view ── */
+    .tab-bar {
+      display: flex;
+      gap: .3rem;
+      background: rgba(0,0,0,.25);
+      border-radius: 8px;
+      padding: .2rem;
+      margin-bottom: 1rem;
+    }
+    .tab-btn {
+      flex: 1;
+      padding: .35rem .5rem;
+      border-radius: 6px;
+      border: none;
+      background: transparent;
+      color: #4a6a8a;
+      font-family: inherit;
+      font-size: .7rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: .2s;
+    }
+    .tab-btn.active, .tab-btn:hover { background: var(--clr-blue); color: #fff; }
+
+    /* ── Compact Info Row ── */
+    .info-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: .5rem .875rem;
+      border-radius: 6px;
+      background: rgba(0,0,0,.2);
+      border: 1px solid rgba(26,58,92,.3);
+      margin-bottom: .4rem;
+      font-size: .78rem;
+    }
+    .info-row-label { color: #8bacc8; font-weight: 500; display: flex; align-items: center; gap: .5rem; }
+    .info-row-label i { color: #42a5f5; font-size: .75rem; }
+    .info-row-value { font-weight: 700; font-family: 'JetBrains Mono', monospace; color: #e8f4ff; }
+
+    /* ── Responsive sidebar ── */
+    @media (max-width: 768px) {
+      body { padding-left: 0; }
+      #sidebar { display: none; }
+      #main-header { left: 0; }
+    }
+  </style>
+</head>
+<body>
+<script>
+  if (localStorage.getItem('theme') === 'light') {
+    document.body.classList.add('light-theme');
+  }
+</script>
+
+<!-- ╔═══════════════════════════════════════╗ -->
+<!-- ║          LOADING SCREEN               ║ -->
+<!-- ╚═══════════════════════════════════════╝ -->
+<div id="loading-screen">
+  <div class="loading-logo">🧊</div>
+  <div class="loading-title">Cold Chain Monitor</div>
+  <div class="loading-bar-wrap"><div class="loading-bar"></div></div>
+  <div class="loading-status" id="loading-status">Initializing sensors...</div>
+</div>
+
+<!-- ╔═══════════════════════════════════════╗ -->
+<!-- ║          SIDEBAR NAVIGATION           ║ -->
+<!-- ╚═══════════════════════════════════════╝ -->
+<nav id="sidebar">
+  <div class="sidebar-logo">🧊</div>
+
+  <a class="nav-item active" href="#sec-overview" onclick="setActiveNav(this)">
+    <i class="fa-solid fa-vial"></i>
+    <span class="nav-label">Vaccine Overview</span>
+  </a>
+  <a class="nav-item" href="#sec-fleet" onclick="setActiveNav(this)">
+    <i class="fa-solid fa-boxes-stacked"></i>
+    <span class="nav-label">Fleet Overview</span>
+  </a>
+  <a class="nav-item" href="#sec-gps" onclick="setActiveNav(this)">
+    <i class="fa-solid fa-location-dot"></i>
+    <span class="nav-label">GPS Tracking</span>
+  </a>
+  <a class="nav-item" href="#sec-door" onclick="setActiveNav(this)">
+    <i class="fa-solid fa-lock"></i>
+    <span class="nav-label">Door Security</span>
+  </a>
+
+  <div class="sidebar-divider"></div>
+
+  <a class="nav-item" href="#sec-alerts" onclick="setActiveNav(this)">
+    <i class="fa-solid fa-triangle-exclamation"></i>
+    <span class="nav-label">Alerts Center</span>
+  </a>
+  <a class="nav-item" href="#sec-kpi" onclick="setActiveNav(this)">
+    <i class="fa-solid fa-chart-pie"></i>
+    <span class="nav-label">Analytics</span>
+  </a>
+  <a class="nav-item" href="#sec-timeline" onclick="setActiveNav(this)">
+    <i class="fa-solid fa-timeline"></i>
+    <span class="nav-label">Journey</span>
+  </a>
+  <a class="nav-item" href="#sec-reports" onclick="setActiveNav(this)">
+    <i class="fa-solid fa-file-contract"></i>
+    <span class="nav-label">Reports</span>
+  </a>
+  <a class="nav-item" href="#sec-ai" onclick="setActiveNav(this)">
+    <i class="fa-solid fa-robot"></i>
+    <span class="nav-label">AI Insights</span>
+  </a>
+
+  <div class="sidebar-spacer"></div>
+  <div class="sidebar-divider"></div>
+
+  <a class="nav-item" href="#main-footer" onclick="setActiveNav(this)">
+    <i class="fa-solid fa-heart-pulse"></i>
+    <span class="nav-label">System Health</span>
+  </a>
+</nav>
+
+<!-- ╔═══════════════════════════════════════╗ -->
+<!-- ║              HEADER                   ║ -->
+<!-- ╚═══════════════════════════════════════╝ -->
+<div id="main-header">
+  <div class="header-top">
+    <div class="header-brand">
+      <div class="logo-wrap">🧊</div>
+      <div class="header-titles">
+        <h1>SMART VACCINE COLD CHAIN MONITORING SYSTEM</h1>
+        <p>Real-Time Vaccine Temperature, Location, Security and Transportation Monitoring</p>
+      </div>
+    </div>
+
+    <div class="header-meta">
+      <div class="meta-item">
+        <span class="label">Date</span>
+        <span class="value" id="header-date">—</span>
+      </div>
+      <div class="meta-item">
+        <span class="label">Time (IST)</span>
+        <span class="value" id="header-time">—</span>
+      </div>
+      <div class="meta-item">
+        <span class="label">Last Sync</span>
+        <span class="value" id="last-sync">—</span>
+      </div>
+      <div style="border-left:1px solid var(--clr-border2);height:36px;margin:0 .25rem;"></div>
+      <div class="meta-item" style="align-items:flex-start;">
+        <span class="label">Role</span>
+        <select id="role-select" class="vaccine-select" style="font-size:.7rem;padding:.3rem .6rem;min-width:140px;">
+          <option>Administrator</option>
+          <option>Healthcare Officer</option>
+          <option>Logistics Manager</option>
+          <option>Driver</option>
+          <option>Viewer</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="header-status-bar">
+    <div class="status-pill">
+      <div class="status-dot" id="internet-dot"></div>
+      <span id="internet-status">Online</span>
+    </div>
+    <div class="status-pill">
+      <div class="status-dot"></div>
+      <span>Device Active</span>
+    </div>
+    <div class="status-pill">
+      <div class="status-dot"></div>
+      <span>GPS Lock · 9 Sats</span>
+    </div>
+    <div class="status-pill">
+      <div class="status-dot" id="door-sensor-indicator"></div>
+      <span>Door Sensor</span>
+    </div>
+    <div class="status-pill" id="firebase-demo-pill">
+      <div class="status-dot warn"></div>
+      <span>Firebase: Demo Mode</span>
+    </div>
+    <div style="flex:1;"></div>
+    <div class="role-badge">
+      <i class="fa-solid fa-user-shield"></i>
+      <span id="role-label">Administrator</span>
+    </div>
+    <div style="margin-left:.75rem;position:relative;cursor:pointer;" onclick="document.getElementById('sec-alerts').scrollIntoView({behavior:'smooth'})">
+      <i class="fa-solid fa-bell" style="color:var(--clr-orange);font-size:1rem;"></i>
+      <span id="alert-count-badge" style="position:absolute;top:-6px;right:-8px;background:var(--clr-red);color:#fff;font-size:.6rem;font-weight:800;width:16px;height:16px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--clr-bg);">4</span>
+    </div>
+    <div id="theme-toggle" class="theme-toggle-btn" style="margin-left:1.25rem;cursor:pointer;width:30px;height:30px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:rgba(255,255,255,.05);border:1px solid var(--clr-border2);transition:var(--transition);" onclick="toggleTheme()" title="Toggle Light/Dark Theme">
+      <i class="fa-solid fa-sun" style="font-size:1rem;color:var(--clr-blue-bright);"></i>
+    </div>
+  </div>
+</div>
+
+<!-- Notification Container -->
+<div id="notification-container"></div>
+
+<!-- Geofence Alert Banner -->
+<div id="geofence-alert">
+  ⚠️ GEOFENCE ALERT — Vehicle has deviated from the approved cold chain route! &nbsp;
+  <button onclick="document.getElementById('geofence-alert').style.display='none'"
+    style="background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.4);color:#fff;padding:.25rem .75rem;border-radius:4px;cursor:pointer;margin-left:1rem;font-family:inherit;">
+    Dismiss
+  </button>
+</div>
+
+<!-- ╔═══════════════════════════════════════╗ -->
+<!-- ║           MAIN CONTENT               ║ -->
+<!-- ╚═══════════════════════════════════════╝ -->
+<div class="dashboard-wrapper">
+  <div class="main-content">
+
+    <!-- ═══════════════════════════════════════════
+         SECTION 1: VACCINE CONTAINER OVERVIEW
+         ═══════════════════════════════════════════ -->
+    <section id="sec-overview">
+      <div class="section-header">
+        <div class="section-title"><i class="fa-solid fa-vial"></i> Vaccine Container Overview</div>
+      </div>
+
+      <!-- Vaccine Selector bar -->
+      <div class="card" style="margin-bottom:1.25rem;">
+        <div class="vaccine-selector-wrap">
+          <i class="fa-solid fa-syringe" style="color:var(--clr-blue-bright);"></i>
+          <label for="vaccine-select">Select Vaccine:</label>
+          <select class="vaccine-select" id="vaccine-select" style="max-width:280px;"></select>
+          <div style="margin-left:auto;font-size:.75rem;color:var(--clr-text-dim);">
+            <strong id="vaccine-name-display" style="color:var(--clr-text);">Covaxin (BBV152)</strong>
+            &nbsp;·&nbsp; <span id="vaccine-mfg">Bharat Biotech</span>
+            &nbsp;·&nbsp; Box ID: <span class="mono" style="color:var(--clr-blue-bright);">VB-001</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid-3">
+        <!-- Temp Range Card -->
+        <div class="card">
+          <div class="card-title"><i class="fa-solid fa-temperature-half"></i> Safe Temperature Range</div>
+          <div class="temp-range-card">
+            <div class="temp-range-label">Required Cold Chain Range</div>
+            <div class="temp-range-value" id="temp-range-display">2°C to 8°C</div>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-top:.875rem;">
+            <div style="text-align:center;">
+              <div style="font-size:.6rem;text-transform:uppercase;letter-spacing:.1em;color:var(--clr-text-muted);">Min</div>
+              <div class="mono" style="font-size:1.25rem;font-weight:800;color:var(--clr-orange);" id="temp-min">2°C</div>
+            </div>
+            <div style="text-align:center;">
+              <div style="font-size:.6rem;text-transform:uppercase;letter-spacing:.1em;color:var(--clr-text-muted);">Optimal</div>
+              <div class="mono" style="font-size:1.25rem;font-weight:800;color:var(--clr-green);" id="temp-optimal">5°C</div>
+            </div>
+            <div style="text-align:center;">
+              <div style="font-size:.6rem;text-transform:uppercase;letter-spacing:.1em;color:var(--clr-text-muted);">Max</div>
+              <div class="mono" style="font-size:1.25rem;font-weight:800;color:var(--clr-red-lt);" id="temp-max">8°C</div>
+            </div>
+          </div>
+          <div style="margin-top:1rem;">
+            <div class="info-row">
+              <span class="info-row-label"><i class="fa-solid fa-snowflake"></i> Storage Type</span>
+              <span class="info-row-value" id="storage-type">Refrigerated</span>
+            </div>
+            <div class="info-row">
+              <span class="info-row-label"><i class="fa-solid fa-industry"></i> Manufacturer</span>
+              <span class="info-row-value" id="vaccine-mfg2">Bharat Biotech</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Live Temperature Gauge Card -->
+        <div class="live-temp-card safe" id="live-temp-card">
+          <div style="font-size:.6rem;letter-spacing:.15em;text-transform:uppercase;color:var(--clr-text-muted);margin-bottom:.25rem;">Live Temperature</div>
+
+          <!-- SVG Arc Gauge -->
+          <div class="gauge-container">
+            <svg class="gauge-svg" width="160" height="110" viewBox="0 0 160 110">
+              <path id="gauge-bg-arc" class="gauge-arc-bg" stroke-width="10"
+                d="M 20 95 A 60 60 0 1 1 140 95" />
+              <path id="gauge-fill-arc" class="gauge-arc-fill" stroke-width="10"
+                stroke="#00e676"
+                d="M 20 95 A 60 60 0 1 1 140 95"
+                style="stroke-dasharray:188;stroke-dashoffset:94;" />
+              <text class="gauge-text-val" x="80" y="78" font-size="26" id="gauge-temp-val">4.6</text>
+              <text class="gauge-text-unit" x="80" y="97" font-size="11">°C</text>
+              <text class="gauge-text-label" x="80" y="108" font-size="7" letter-spacing="1.5">SENSOR 1</text>
+            </svg>
+          </div>
+
+          <div id="temp-status-badge" class="status-badge safe">
+            <i class="fa-solid fa-circle-check"></i> SAFE
+          </div>
+          <div style="margin-top:.6rem;display:flex;justify-content:space-around;font-size:.65rem;color:var(--clr-text-muted);">
+            <span>Sensor 2: <strong class="mono" id="sensor2-val" style="color:var(--clr-text-dim);">4.4°C</strong></span>
+            <span>Avg: <strong class="mono" id="sensor-avg-val" style="color:var(--clr-text-dim);">4.5°C</strong></span>
+          </div>
+        </div>
+
+        <!-- Quick Status Card -->
+        <div class="card">
+          <div class="card-title"><i class="fa-solid fa-gauge-high"></i> Quick Status</div>
+          <div style="display:flex;flex-direction:column;gap:.45rem;">
+            <div class="info-row">
+              <span class="info-row-label"><i class="fa-solid fa-snowflake"></i> Cold Chain Integrity</span>
+              <span class="info-row-value" style="color:var(--clr-green);">87%</span>
+            </div>
+            <div class="mini-progress" style="margin-top:-.2rem;margin-bottom:.25rem;">
+              <div class="mini-progress-bar" style="width:87%;background:linear-gradient(90deg,var(--clr-green-dk),var(--clr-green));"></div>
+            </div>
+            <div class="info-row">
+              <span class="info-row-label"><i class="fa-solid fa-route"></i> Route Compliance</span>
+              <span class="info-row-value" style="color:var(--clr-green);">94.2%</span>
+            </div>
+            <div class="mini-progress" style="margin-top:-.2rem;margin-bottom:.25rem;">
+              <div class="mini-progress-bar" style="width:94%;background:linear-gradient(90deg,var(--clr-green-dk),var(--clr-green));"></div>
+            </div>
+            <div class="info-row">
+              <span class="info-row-label"><i class="fa-solid fa-road"></i> Journey Progress</span>
+              <span class="info-row-value" style="color:var(--clr-blue-bright);">58%</span>
+            </div>
+            <div class="mini-progress" style="margin-top:-.2rem;margin-bottom:.25rem;">
+              <div class="mini-progress-bar" style="width:58%;background:linear-gradient(90deg,var(--clr-blue),var(--clr-cyan));"></div>
+            </div>
+            <div class="info-row">
+              <span class="info-row-label"><i class="fa-solid fa-battery-quarter"></i> Battery Level</span>
+              <span class="info-row-value" style="color:var(--clr-orange);">18%</span>
+            </div>
+            <div class="mini-progress" style="margin-top:-.2rem;margin-bottom:.25rem;">
+              <div class="mini-progress-bar" style="width:18%;background:var(--clr-orange);"></div>
+            </div>
+            <div class="info-row">
+              <span class="info-row-label"><i class="fa-solid fa-wifi"></i> Signal Strength</span>
+              <span class="info-row-value" style="color:var(--clr-green);">4G · -78 dBm</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Temperature Trend Chart -->
+      <div class="card" style="margin-top:1.25rem;">
+        <div class="section-header">
+          <div class="card-title" style="margin:0;"><i class="fa-solid fa-chart-line"></i> Temperature Trend</div>
+          <div style="display:flex;align-items:center;gap:.75rem;">
+            <span style="font-size:.68rem;color:var(--clr-text-muted);">Live update every 3s</span>
+            <div class="chart-tabs">
+              <button class="chart-tab active" data-range="1h">1H</button>
+              <button class="chart-tab" data-range="6h">6H</button>
+              <button class="chart-tab" data-range="24h">24H</button>
+              <button class="chart-tab" data-range="7d">7D</button>
+            </div>
+          </div>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="tempChart"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════
+         SECTION 2: FLEET OVERVIEW TABLE
+         ═══════════════════════════════════════════ -->
+    <section id="sec-fleet">
+      <div class="section-header">
+        <div class="section-title"><i class="fa-solid fa-boxes-stacked"></i> Fleet Overview — All Vaccine Boxes</div>
+        <div style="display:flex;gap:.5rem;align-items:center;">
+          <span style="font-size:.7rem;color:var(--clr-text-muted);">12 boxes tracked</span>
+          <button onclick="refreshFleetTable()" style="padding:.3rem .6rem;border-radius:6px;border:1px solid var(--clr-border);background:transparent;color:var(--clr-blue-bright);cursor:pointer;font-family:inherit;font-size:.7rem;">
+            <i class="fa-solid fa-rotate-right"></i> Refresh
+          </button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="tab-bar">
+          <button class="tab-btn active" onclick="filterFleet('all',this)">All Boxes</button>
+          <button class="tab-btn" onclick="filterFleet('safe',this)">✅ Safe</button>
+          <button class="tab-btn" onclick="filterFleet('alert',this)">🔴 Alert</button>
+          <button class="tab-btn" onclick="filterFleet('transit',this)">🚛 In Transit</button>
+        </div>
+        <div class="fleet-scroll">
+          <table class="fleet-table" id="fleet-table">
+            <thead>
+              <tr>
+                <th>Box ID</th>
+                <th>Vaccine</th>
+                <th>Temperature</th>
+                <th>Status</th>
+                <th>Location</th>
+                <th>Driver</th>
+                <th>ETA</th>
+                <th>Door</th>
+                <th>Battery</th>
+              </tr>
+            </thead>
+            <tbody id="fleet-tbody">
+              <!-- Populated by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════
+         SECTION 3: GPS TRACKING
+         ═══════════════════════════════════════════ -->
+    <section id="sec-gps">
+      <div class="section-header">
+        <div class="section-title"><i class="fa-solid fa-location-dot"></i> GPS Tracking &amp; Route Visualization</div>
+      </div>
+
+      <div class="grid-2" style="grid-template-columns:2fr 1fr;">
+        <!-- Map -->
+        <div class="card" style="padding:.75rem;">
+          <div id="map-container">
+            <div id="leaflet-map"></div>
+            <div class="map-overlay">
+              <div class="map-badge"><i class="fa-solid fa-crosshairs"></i><span id="map-coords">28.6292°N, 77.2182°E</span></div>
+              <div class="map-badge"><i class="fa-solid fa-map-marker-alt"></i><span id="map-address">En route to AIIMS Hospital</span></div>
+              <div class="map-badge"><i class="fa-solid fa-shield-halved" style="color:var(--clr-green);"></i><span style="color:var(--clr-green);">Geofence: Active</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Panel -->
+        <div style="display:flex;flex-direction:column;gap:1.25rem;">
+          <!-- Vehicle Analytics -->
+          <div class="card">
+            <div class="card-title"><i class="fa-solid fa-truck-fast"></i> Vehicle Analytics</div>
+            <div class="vehicle-stats">
+              <div class="v-stat">
+                <div class="v-icon"><i class="fa-solid fa-gauge-high"></i></div>
+                <div class="v-value" id="v-speed">42 km/h</div>
+                <div class="v-label">Speed</div>
+              </div>
+              <div class="v-stat">
+                <div class="v-icon"><i class="fa-solid fa-road"></i></div>
+                <div class="v-value" id="v-dist">12.4 km</div>
+                <div class="v-label">Distance</div>
+              </div>
+              <div class="v-stat">
+                <div class="v-icon"><i class="fa-solid fa-clock"></i></div>
+                <div class="v-value" id="v-eta">35 min</div>
+                <div class="v-label">ETA</div>
+              </div>
+              <div class="v-stat">
+                <div class="v-icon"><i class="fa-solid fa-rotate"></i></div>
+                <div class="v-value" id="v-updated" style="font-size:.875rem;">—</div>
+                <div class="v-label">Updated</div>
+              </div>
+            </div>
+            <div style="margin-top:.875rem;">
+              <div style="font-size:.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--clr-text-muted);margin-bottom:.4rem;">Geofence Status</div>
+              <div id="geofence-status-row" style="display:flex;align-items:center;gap:.5rem;padding:.5rem .75rem;background:rgba(0,230,118,.07);border:1px solid rgba(0,230,118,.2);border-radius:6px;">
+                <i class="fa-solid fa-shield-check" style="color:var(--clr-green);"></i>
+                <span style="font-size:.78rem;font-weight:600;color:var(--clr-green);">Within Approved Route</span>
+                <button onclick="showGeofenceAlert()" style="margin-left:auto;background:rgba(255,152,0,.15);border:1px solid rgba(255,152,0,.3);color:var(--clr-orange);border-radius:4px;padding:.2rem .5rem;font-size:.65rem;cursor:pointer;font-family:inherit;">
+                  Test Alert
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Route Steps -->
+          <div class="card" style="flex:1;">
+            <div class="card-title"><i class="fa-solid fa-route"></i> Transport Route</div>
+            <div class="route-steps">
+              <div class="route-step completed"><div class="route-dot"></div><div><div class="route-step-name">🏭 Central Warehouse</div><div class="route-step-time">08:00 AM ✓</div></div></div>
+              <div class="route-step active"><div class="route-dot"></div><div><div class="route-step-name">📦 Distribution Hub</div><div class="route-step-time">→ Current Position</div></div></div>
+              <div class="route-step"><div class="route-dot"></div><div><div class="route-step-name">🔰 Cold Chain Checkpoint</div><div class="route-step-time">~12:00 PM</div></div></div>
+              <div class="route-step"><div class="route-dot"></div><div><div class="route-step-name">🏥 AIIMS Hospital</div><div class="route-step-time">~01:30 PM</div></div></div>
+              <div class="route-step"><div class="route-dot"></div><div><div class="route-step-name">💉 Vaccination Center</div><div class="route-step-time">~02:15 PM</div></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════
+         SECTION 4: DOOR SECURITY
+         ═══════════════════════════════════════════ -->
+    <section id="sec-door">
+      <div class="section-header">
+        <div class="section-title"><i class="fa-solid fa-lock"></i> Vaccine Box Security — MC38 Door Sensor</div>
+      </div>
+
+      <div class="grid-3">
+        <!-- Door Status -->
+        <div class="door-status-card closed" id="door-status-card">
+          <div class="door-icon" id="door-icon">🔒</div>
+          <div class="door-status-text" id="door-status-text">DOOR CLOSED</div>
+          <div style="font-size:.7rem;color:var(--clr-text-muted);margin-top:.4rem;">MC38 Magnetic Reed Switch · VB-001</div>
+          <div style="margin-top:1.25rem;display:flex;gap:.75rem;justify-content:center;">
+            <button onclick="setDoorStatus('open')" style="padding:.4rem 1rem;border-radius:6px;border:1px solid rgba(244,67,54,.4);background:rgba(244,67,54,.1);color:var(--clr-red-lt);cursor:pointer;font-family:inherit;font-size:.72rem;font-weight:600;">
+              Simulate Open
+            </button>
+            <button onclick="setDoorStatus('closed')" style="padding:.4rem 1rem;border-radius:6px;border:1px solid rgba(0,230,118,.4);background:rgba(0,230,118,.1);color:var(--clr-green);cursor:pointer;font-family:inherit;font-size:.72rem;font-weight:600;">
+              Simulate Close
+            </button>
+          </div>
+        </div>
+
+        <!-- Security Stats -->
+        <div class="card">
+          <div class="card-title"><i class="fa-solid fa-chart-bar"></i> Security Stats</div>
+          <div style="display:flex;flex-direction:column;gap:.5rem;">
+            <div class="info-row">
+              <span class="info-row-label"><i class="fa-solid fa-hashtag"></i> Total Events Today</span>
+              <span class="info-row-value">7</span>
+            </div>
+            <div class="info-row">
+              <span class="info-row-label"><i class="fa-solid fa-circle-check"></i> Authorized Opens</span>
+              <span class="info-row-value" style="color:var(--clr-green);">6</span>
+            </div>
+            <div class="info-row">
+              <span class="info-row-label"><i class="fa-solid fa-triangle-exclamation"></i> Unauthorized</span>
+              <span class="info-row-value" style="color:var(--clr-red);">1</span>
+            </div>
+            <div class="info-row">
+              <span class="info-row-label"><i class="fa-solid fa-clock"></i> Last Event</span>
+              <span class="info-row-value">10:32 AM</span>
+            </div>
+            <div style="margin-top:.3rem;">
+              <div style="font-size:.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--clr-text-muted);margin-bottom:.3rem;">Door Security Score</div>
+              <div style="font-size:2.2rem;font-weight:900;font-family:var(--font-mono);color:var(--clr-green);">91<span style="font-size:1rem;color:var(--clr-text-muted);">/100</span></div>
+              <div class="mini-progress" style="margin-top:.4rem;">
+                <div class="mini-progress-bar" style="width:91%;background:linear-gradient(90deg,var(--clr-green-dk),var(--clr-green));"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Door Event Log -->
+        <div class="card">
+          <div class="card-title"><i class="fa-solid fa-list-ul"></i> Door Event Log</div>
+          <div class="event-log" id="door-event-log"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════
+         SECTION 5: ALERTS CENTER
+         ═══════════════════════════════════════════ -->
+    <section id="sec-alerts">
+      <div class="section-header">
+        <div class="section-title"><i class="fa-solid fa-triangle-exclamation"></i> Alerts Center</div>
+        <button onclick="ALERTS_DATA.forEach(a=>a.resolved=true);renderAlerts('all');" style="font-size:.7rem;padding:.3rem .75rem;border-radius:4px;border:1px solid var(--clr-border);background:transparent;color:var(--clr-text-dim);cursor:pointer;font-family:inherit;">
+          Mark All Resolved
+        </button>
+      </div>
+      <div class="card">
+        <div class="alert-filters">
+          <button class="alert-filter-btn active" data-filter="all">All</button>
+          <button class="alert-filter-btn" data-filter="critical">🔴 Critical</button>
+          <button class="alert-filter-btn" data-filter="unresolved">🟡 Unresolved</button>
+          <button class="alert-filter-btn" data-filter="temperature">🌡 Temperature</button>
+          <button class="alert-filter-btn" data-filter="door">🚪 Door</button>
+          <button class="alert-filter-btn" data-filter="gps">📍 GPS</button>
+        </div>
+        <div class="alerts-list" id="alerts-list"></div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════
+         SECTION 6: KPI ANALYTICS
+         ═══════════════════════════════════════════ -->
+    <section id="sec-kpi">
+      <div class="section-header">
+        <div class="section-title"><i class="fa-solid fa-chart-pie"></i> Analytics Dashboard</div>
+      </div>
+      <div class="grid-kpi">
+        <div class="kpi-card">
+          <div class="kpi-icon"><i class="fa-solid fa-box-archive"></i></div>
+          <div class="kpi-value" id="kpi-total-boxes">0</div>
+          <div class="kpi-label">Total Vaccine Boxes</div>
+          <div class="kpi-change flat"><i class="fa-solid fa-minus"></i> No change today</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon" style="background:var(--clr-cyan-glow);border-color:rgba(0,188,212,.2);color:var(--clr-cyan);"><i class="fa-solid fa-satellite-dish"></i></div>
+          <div class="kpi-value" id="kpi-active-boxes">0</div>
+          <div class="kpi-label">Active Boxes</div>
+          <div class="kpi-change up"><i class="fa-solid fa-arrow-up"></i> +2 from yesterday</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon" style="background:var(--clr-green-glow);border-color:rgba(0,230,118,.2);color:var(--clr-green);"><i class="fa-solid fa-shield-check"></i></div>
+          <div class="kpi-value" id="kpi-safe-boxes">0</div>
+          <div class="kpi-label">Safe Boxes</div>
+          <div class="kpi-change up"><i class="fa-solid fa-arrow-up"></i> All within range</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon" style="background:var(--clr-red-glow);border-color:rgba(244,67,54,.2);color:var(--clr-red);"><i class="fa-solid fa-circle-exclamation"></i></div>
+          <div class="kpi-value" id="kpi-alert-boxes" style="color:var(--clr-red);">0</div>
+          <div class="kpi-label">Alerted Boxes</div>
+          <div class="kpi-change down"><i class="fa-solid fa-arrow-up"></i> +1 from last hour</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon"><i class="fa-solid fa-temperature-three-quarters"></i></div>
+          <div class="kpi-value" id="kpi-avg-temp" style="font-size:1.5rem;">4.8°C</div>
+          <div class="kpi-label">Average Temperature</div>
+          <canvas id="mini-temp-chart" width="100" height="35" style="margin-top:.5rem;display:block;width:100%;height:35px;"></canvas>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon" style="background:var(--clr-green-glow);border-color:rgba(0,230,118,.2);color:var(--clr-green);"><i class="fa-solid fa-route"></i></div>
+          <div class="kpi-value" id="kpi-route-compliance" style="font-size:1.5rem;color:var(--clr-green);">94.2%</div>
+          <div class="kpi-label">Route Compliance</div>
+          <canvas id="mini-route-chart" width="100" height="35" style="margin-top:.5rem;display:block;width:100%;height:35px;"></canvas>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon" style="background:var(--clr-orange-glow);border-color:rgba(255,152,0,.2);color:var(--clr-orange);"><i class="fa-solid fa-lock"></i></div>
+          <div class="kpi-value" id="kpi-door-score" style="font-size:1.5rem;color:var(--clr-orange);">91/100</div>
+          <div class="kpi-label">Door Security Score</div>
+          <canvas id="mini-door-chart" width="100" height="35" style="margin-top:.5rem;display:block;width:100%;height:35px;"></canvas>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon" style="background:var(--clr-cyan-glow);border-color:rgba(0,188,212,.2);color:var(--clr-cyan);"><i class="fa-solid fa-snowflake"></i></div>
+          <div class="kpi-value" id="kpi-coldchain-score" style="font-size:1.5rem;color:var(--clr-cyan);">87/100</div>
+          <div class="kpi-label">Cold Chain Integrity</div>
+          <canvas id="mini-chain-chart" width="100" height="35" style="margin-top:.5rem;display:block;width:100%;height:35px;"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════
+         SECTION 7: JOURNEY TIMELINE
+         ═══════════════════════════════════════════ -->
+    <section id="sec-timeline">
+      <div class="section-header">
+        <div class="section-title"><i class="fa-solid fa-timeline"></i> Vaccine Journey Timeline</div>
+      </div>
+      <div class="card">
+        <div class="timeline" id="journey-timeline"></div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════
+         SECTIONS 8 & 9: REPORTS + AI INSIGHTS
+         ═══════════════════════════════════════════ -->
+    <div class="grid-2">
+      <!-- Reports -->
+      <section id="sec-reports">
+        <div class="section-header">
+          <div class="section-title"><i class="fa-solid fa-file-contract"></i> Reports</div>
+        </div>
+        <div class="card">
+          <div class="card-title"><i class="fa-solid fa-calendar"></i> Generate Reports</div>
+          <div class="report-grid">
+            <button class="report-btn" onclick="exportPDF('Daily')"><i class="fa-solid fa-calendar-day"></i><span>Daily Report</span></button>
+            <button class="report-btn" onclick="exportPDF('Weekly')"><i class="fa-solid fa-calendar-week"></i><span>Weekly Report</span></button>
+            <button class="report-btn" onclick="exportPDF('Monthly')"><i class="fa-solid fa-calendar"></i><span>Monthly Report</span></button>
+          </div>
+          <div class="card-title" style="margin-top:1rem;"><i class="fa-solid fa-download"></i> Export Data</div>
+          <div class="export-btns">
+            <button class="export-btn pdf" onclick="exportPDF('Daily')"><i class="fa-solid fa-file-pdf"></i> PDF</button>
+            <button class="export-btn excel" onclick="exportExcel('Daily')"><i class="fa-solid fa-file-excel"></i> Excel</button>
+            <button class="export-btn csv" onclick="exportCSV('Daily')"><i class="fa-solid fa-file-csv"></i> CSV</button>
+          </div>
+          <div style="margin-top:1rem;">
+            <div class="card-title"><i class="fa-solid fa-clock-rotate-left"></i> Recent Reports</div>
+            <div style="display:flex;flex-direction:column;gap:.4rem;">
+              <div class="info-row"><span class="info-row-label"><i class="fa-solid fa-file-pdf" style="color:var(--clr-red);"></i> Daily Report — 05 Jun 2026</span><span style="font-size:.65rem;color:var(--clr-text-muted);">2h ago</span></div>
+              <div class="info-row"><span class="info-row-label"><i class="fa-solid fa-file-excel" style="color:var(--clr-green);"></i> Weekly Report — Week 22</span><span style="font-size:.65rem;color:var(--clr-text-muted);">1d ago</span></div>
+              <div class="info-row"><span class="info-row-label"><i class="fa-solid fa-file-csv" style="color:var(--clr-blue-bright);"></i> Temperature Log Export</span><span style="font-size:.65rem;color:var(--clr-text-muted);">3d ago</span></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- AI Insights -->
+      <section id="sec-ai">
+        <div class="section-header">
+          <div class="section-title"><i class="fa-solid fa-robot"></i> AI Insights &amp; Recommendations</div>
+        </div>
+        <div class="card">
+          <div class="ai-header">
+            <div class="ai-avatar"><i class="fa-solid fa-brain"></i></div>
+            <div>
+              <div class="ai-title">ColdChain AI Assistant</div>
+              <div class="ai-subtitle">Last analyzed · <span class="mono">Just now</span></div>
+            </div>
+            <button onclick="renderAIInsights()" style="margin-left:auto;background:rgba(0,188,212,.1);border:1px solid rgba(0,188,212,.3);color:var(--clr-cyan);border-radius:6px;padding:.3rem .75rem;font-size:.7rem;cursor:pointer;font-family:inherit;">
+              <i class="fa-solid fa-rotate-right"></i> Refresh
+            </button>
+          </div>
+          <div id="ai-insights-list"></div>
+          <div class="risk-meter">
+            <div class="risk-label">Cold Chain Risk Score</div>
+            <div class="risk-bar-wrap"><div class="risk-bar" id="risk-bar" style="width:28%;"></div></div>
+            <div class="risk-score low" id="risk-score-val">28</div>
+            <div style="font-size:.68rem;color:var(--clr-text-muted);margin-top:.15rem;">LOW RISK — Cold chain performing well</div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+  </div><!-- /main-content -->
+</div><!-- /dashboard-wrapper -->
+
+<!-- ╔═══════════════════════════════════════╗ -->
+<!-- ║              FOOTER                  ║ -->
+<!-- ╚═══════════════════════════════════════╝ -->
+<footer id="main-footer">
+  <div class="footer-title">
+    <i class="fa-solid fa-heart-pulse" style="color:var(--clr-red);"></i>
+    System Health Monitor
+  </div>
+  <div class="system-health-grid" id="system-health-grid"></div>
+  <div class="footer-overall">
+    <div class="overall-status">
+      <i class="fa-solid fa-circle-check" style="color:var(--clr-green);"></i>
+      Overall System Status:
+      <span class="overall-badge safe" id="overall-status-badge">SYSTEM SAFE</span>
+    </div>
+    <div class="footer-info">
+      Smart Vaccine Cold Chain Monitoring System v2.0 &nbsp;·&nbsp; ESP32 + Firebase + Vercel<br>
+      <a href="https://vercel.com" target="_blank" style="color:var(--clr-blue-bright);text-decoration:none;">
+        <i class="fa-solid fa-rocket"></i> Deploy on Vercel
+      </a>
+      &nbsp;·&nbsp;
+      <span style="font-family:var(--font-mono);" id="footer-clock">—</span>
+    </div>
+  </div>
+</footer>
+
+<!-- ╔═══════════════════════════════════════╗ -->
+<!-- ║              SCRIPTS                 ║ -->
+<!-- ╚═══════════════════════════════════════╝ -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+<script src="js/firebase-config.js"></script>
+<script src="js/app.js"></script>
+<script src="js/charts.js"></script>
+<script src="js/maps.js"></script>
+<script src="js/alerts.js"></script>
+<script src="js/reports.js"></script>
+<script src="js/fleet.js"></script>
+
+<script>
+/* ── Loading Screen ─────────────────────── */
+const LOADING_MSGS = [
+  'Initializing sensors...',
+  'Connecting to Firebase...',
+  'Loading GPS module...',
+  'Fetching temperature logs...',
+  'Calibrating door sensors...',
+  'Rendering dashboard...',
+];
+let _lm = 0;
+const _lmI = setInterval(() => {
+  const el = document.getElementById('loading-status');
+  if (el && _lm < LOADING_MSGS.length) el.textContent = LOADING_MSGS[_lm++];
+  else clearInterval(_lmI);
+}, 320);
+
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    const ls = document.getElementById('loading-screen');
+    if (ls) ls.classList.add('hidden');
+    setTimeout(() => { if (ls) ls.remove(); }, 600);
+  }, 2100);
+});
+
+/* ── Sidebar Active Nav ──────────────────── */
+function setActiveNav(el) {
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  el.classList.add('active');
+}
+
+/* ── Highlight active nav on scroll ─────── */
+const _sections = ['sec-overview','sec-fleet','sec-gps','sec-door','sec-alerts','sec-kpi','sec-timeline','sec-reports','sec-ai'];
+window.addEventListener('scroll', () => {
+  let current = '';
+  _sections.forEach(id => {
+    const el = document.getElementById(id);
+    if (el && el.getBoundingClientRect().top < 140) current = id;
+  });
+  document.querySelectorAll('.nav-item').forEach(n => {
+    n.classList.toggle('active', n.getAttribute('href') === '#' + current);
+  });
+}, { passive: true });
+
+/* ── Geofence Alert ──────────────────────── */
+function showGeofenceAlert() {
+  document.getElementById('geofence-alert').style.display = 'block';
+  pushAlert('gps_deviation');
+  setTimeout(() => document.getElementById('geofence-alert').style.display = 'none', 8000);
+}
+
+/* ── Footer clock ────────────────────────── */
+setInterval(() => {
+  const el = document.getElementById('footer-clock');
+  if (el) el.textContent = new Date().toLocaleTimeString('en-IN');
+}, 1000);
+
+/* ── Theme Toggle ────────────────────────── */
+function toggleTheme() {
+  const isLight = document.body.classList.toggle('light-theme');
+  localStorage.setItem('theme', isLight ? 'light' : 'dark');
+  
+  // Update toggle button icon
+  const icon = document.querySelector('#theme-toggle i');
+  if (icon) {
+    if (isLight) {
+      icon.className = 'fa-solid fa-moon';
+    } else {
+      icon.className = 'fa-solid fa-sun';
+    }
+  }
+
+  // Update CartoDB map tile layer if map is loaded
+  if (typeof updateMapTileLayer === 'function') {
+    updateMapTileLayer(isLight ? 'light' : 'dark');
+  }
+
+  // Update temperature chart styling if loaded
+  if (typeof updateChartsTheme === 'function') {
+    updateChartsTheme(isLight ? 'light' : 'dark');
+  }
+}
+
+// Initial icon set
+document.addEventListener('DOMContentLoaded', () => {
+  const isLight = document.body.classList.contains('light-theme');
+  const icon = document.querySelector('#theme-toggle i');
+  if (icon) {
+    if (isLight) {
+      icon.className = 'fa-solid fa-moon';
+    } else {
+      icon.className = 'fa-solid fa-sun';
+    }
+  }
+  // If light theme, update tile layer immediately
+  if (isLight && typeof updateMapTileLayer === 'function') {
+    updateMapTileLayer('light');
+  }
+});
+</script>
+</body>
+</html>

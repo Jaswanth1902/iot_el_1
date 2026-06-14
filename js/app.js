@@ -160,9 +160,9 @@ function updateTempDisplay(temp) {
     const offset = 188 - (pct / 100) * 188;
     fillArc.style.strokeDashoffset = offset;
     
-    if (isSafe) fillArc.setAttribute('stroke', '#00e676');
-    else if (isAlert) fillArc.setAttribute('stroke', '#f44336');
-    else fillArc.setAttribute('stroke', '#ff9800');
+    if (isSafe) fillArc.setAttribute('stroke', '#7BA582');
+    else if (isAlert) fillArc.setAttribute('stroke', '#C96868');
+    else fillArc.setAttribute('stroke', '#DEB059');
   }
 
   // Update secondary sensor display
@@ -221,6 +221,30 @@ function toggleDoorDemo() {
   if (doorOpen) pushAlert('door_open');
 }
 
+const SVG_DOOR_CLOSED = `
+<svg width="90" height="90" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;margin:0 auto;">
+  <rect x="8" y="24" width="48" height="32" rx="4" fill="#6B8EA8" />
+  <rect x="6" y="16" width="52" height="8" rx="2" fill="#4E738E" />
+  <rect x="28" y="22" width="8" height="12" rx="2" fill="#7BA582" />
+  <circle cx="32" cy="28" r="2" fill="#FFFFFF" />
+  <rect x="2" y="32" width="6" height="12" rx="2" fill="#2E2721" />
+  <rect x="56" y="32" width="6" height="12" rx="2" fill="#2E2721" />
+</svg>
+`;
+
+const SVG_DOOR_OPEN = `
+<svg width="90" height="90" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;margin:0 auto;">
+  <rect x="6" y="4" width="52" height="8" rx="2" fill="#4E738E" transform="rotate(-15 6 4)" />
+  <rect x="8" y="24" width="48" height="32" rx="4" fill="#6B8EA8" />
+  <rect x="16" y="16" width="8" height="12" rx="2" fill="#C96868" />
+  <rect x="28" y="16" width="8" height="12" rx="2" fill="#DEB059" />
+  <rect x="40" y="16" width="8" height="12" rx="2" fill="#7BA582" />
+  <rect x="28" y="24" width="8" height="6" rx="1" fill="#C96868" />
+  <rect x="2" y="32" width="6" height="12" rx="2" fill="#2E2721" />
+  <rect x="56" y="32" width="6" height="12" rx="2" fill="#2E2721" />
+</svg>
+`;
+
 function renderDoorStatus() {
   const card = document.getElementById('door-status-card');
   const icon = document.getElementById('door-icon');
@@ -229,7 +253,7 @@ function renderDoorStatus() {
 
   if (!card) return;
   card.className = 'door-status-card ' + (doorOpen ? 'open' : 'closed');
-  if (icon) icon.textContent = doorOpen ? '🔓' : '🔒';
+  if (icon) icon.innerHTML = doorOpen ? SVG_DOOR_OPEN : SVG_DOOR_CLOSED;
   if (text) {
     text.className = 'door-status-text';
     text.textContent = doorOpen ? 'DOOR OPEN' : 'DOOR CLOSED';
@@ -257,7 +281,7 @@ function renderDoorLog() {
   if (!container) return;
   container.innerHTML = doorLog.slice(0, 15).map(ev => `
     <div class="event-item ${ev.type}">
-      <span class="event-icon">${ev.type === 'opened' ? '🔓' : '🔒'}</span>
+      <span class="event-icon">${ev.type === 'opened' ? '<i class="fa-solid fa-lock-open" style="color:var(--clr-red);"></i>' : '<i class="fa-solid fa-lock" style="color:var(--clr-green);"></i>'}</span>
       <div>
         <div style="font-weight:600;text-transform:capitalize;">Door ${ev.type}</div>
         <div class="event-time">${ev.time.toLocaleTimeString('en-IN')}</div>
@@ -281,7 +305,7 @@ function initKPIs() {
 
   // Mini sparklines
   ['mini-temp-chart','mini-route-chart','mini-door-chart','mini-chain-chart'].forEach((id, i) => {
-    const colors = ['#42a5f5','#00e676','#ff9800','#00bcd4'];
+    const colors = ['#6B8EA8','#7BA582','#DEB059','#6FAAA3'];
     initMiniChart(id, colors[i]);
   });
 

@@ -299,7 +299,14 @@
 <!-- ║          LOADING SCREEN               ║ -->
 <!-- ╚═══════════════════════════════════════╝ -->
 <div id="loading-screen">
-  <div class="loading-logo">🧊</div>
+  <div class="loading-logo" style="background: none; box-shadow: none; width: auto; height: auto;">
+    <svg width="80" height="80" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="3" y="9" width="26" height="20" rx="4" fill="#FCF8F2" />
+      <rect x="1" y="5" width="30" height="6" rx="2" fill="#6B8EA8" />
+      <rect x="11" y="15" width="10" height="8" rx="2" fill="#C96868" />
+      <circle cx="16" cy="19" r="2.5" fill="#FFFFFF" />
+    </svg>
+  </div>
   <div class="loading-title">Cold Chain Monitor</div>
   <div class="loading-bar-wrap"><div class="loading-bar"></div></div>
   <div class="loading-status" id="loading-status">Initializing sensors...</div>
@@ -309,7 +316,14 @@
 <!-- ║          SIDEBAR NAVIGATION           ║ -->
 <!-- ╚═══════════════════════════════════════╝ -->
 <nav id="sidebar">
-  <div class="sidebar-logo">🧊</div>
+  <div class="sidebar-logo" style="background: none; box-shadow: none;">
+    <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="3" y="9" width="26" height="20" rx="4" fill="#FCF8F2" />
+      <rect x="1" y="5" width="30" height="6" rx="2" fill="#6B8EA8" />
+      <rect x="11" y="15" width="10" height="8" rx="2" fill="#C96868" />
+      <circle cx="16" cy="19" r="2.5" fill="#FFFFFF" />
+    </svg>
+  </div>
 
   <a class="nav-item active" href="#sec-overview" onclick="setActiveNav(this)">
     <i class="fa-solid fa-vial"></i>
@@ -366,7 +380,14 @@
 <div id="main-header">
   <div class="header-top">
     <div class="header-brand">
-      <div class="logo-wrap">🧊</div>
+      <div class="logo-wrap" style="background: none; box-shadow: none;">
+        <svg width="38" height="38" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="3" y="9" width="26" height="20" rx="4" fill="#FCF8F2" />
+          <rect x="1" y="5" width="30" height="6" rx="2" fill="#6B8EA8" />
+          <rect x="11" y="15" width="10" height="8" rx="2" fill="#C96868" />
+          <circle cx="16" cy="19" r="2.5" fill="#FFFFFF" />
+        </svg>
+      </div>
       <div class="header-titles">
         <h1>SMART VACCINE COLD CHAIN MONITORING SYSTEM</h1>
         <p>Real-Time Vaccine Temperature, Location, Security and Transportation Monitoring</p>
@@ -453,6 +474,86 @@
 <!-- ╚═══════════════════════════════════════╝ -->
 <div class="dashboard-wrapper">
   <div class="main-content">
+
+    <!-- ── HERO ILLUSTRATION CARD (Corporate Memphis) ── -->
+    <div class="card" style="margin-bottom:1.5rem; display: flex; align-items: center; justify-content: space-between; gap: 2rem; background: var(--clr-cyan-glow); border: 3px solid var(--clr-shadow); flex-wrap: wrap;">
+      <div style="flex: 1.5; padding: 0.5rem; min-width: 280px;">
+        <h2 style="font-size: 1.75rem; color: var(--clr-text); font-weight: 900; margin-bottom: 0.5rem; letter-spacing: -0.02em;">REAL-TIME COLD CHAIN MONITORING</h2>
+        <p style="font-size: 0.9rem; color: var(--clr-text-dim); margin-bottom: 1.25rem; font-weight: 600;">
+          Ensuring vaccine potency from warehouse to vaccination center. Track precise temperature, GPS compliance, and door security anomalies in real-time with outline-free flat illustrations.
+        </p>
+        <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+          <div style="background: var(--clr-card); padding: 0.5rem 1rem; border-radius: 8px; border: 2px solid var(--clr-shadow); font-size: 0.78rem; font-weight: 800; display: flex; align-items: center; gap: 0.5rem; box-shadow: 2px 2px 0px var(--clr-shadow);">
+            <i class="fa-solid fa-temperature-half" style="color: var(--clr-red);"></i> Continuous Temperature Logs
+          </div>
+          <div style="background: var(--clr-card); padding: 0.5rem 1rem; border-radius: 8px; border: 2px solid var(--clr-shadow); font-size: 0.78rem; font-weight: 800; display: flex; align-items: center; gap: 0.5rem; box-shadow: 2px 2px 0px var(--clr-shadow);">
+            <i class="fa-solid fa-location-crosshairs" style="color: var(--clr-blue-bright);"></i> Active GPS Geofencing
+          </div>
+          <div style="background: var(--clr-card); padding: 0.5rem 1rem; border-radius: 8px; border: 2px solid var(--clr-shadow); font-size: 0.78rem; font-weight: 800; display: flex; align-items: center; gap: 0.5rem; box-shadow: 2px 2px 0px var(--clr-shadow);">
+            <i class="fa-solid fa-shield-halved" style="color: var(--clr-green-dk);"></i> MC-38 Security Sensors
+          </div>
+        </div>
+      </div>
+      <!-- Inline SVG Memphis Vector Illustration -->
+      <div class="hero-illustration-wrap" style="flex: 1.2; min-width: 320px; display: flex; justify-content: center; align-items: center; overflow: hidden; height: 210px;">
+        <svg width="100%" height="100%" viewBox="0 0 350 250" fill="none" xmlns="http://www.w3.org/2000/svg" style="overflow: visible;">
+          <!-- Background floating shapes -->
+          <path d="M 50 180 C 50 150, 100 130, 150 150 C 200 170, 250 130, 250 160 C 250 190, 200 210, 150 200 C 100 190, 50 210, 50 180 Z" fill="var(--clr-bg)" />
+          <circle cx="280" cy="50" r="25" fill="var(--clr-orange-glow)" />
+          <rect x="20" y="30" width="80" height="4" rx="2" fill="var(--clr-blue-glow)" />
+          <rect x="40" y="42" width="60" height="4" rx="2" fill="var(--clr-blue-glow)" />
+          
+          <!-- Window frame -->
+          <rect x="240" y="20" width="80" height="60" rx="6" fill="#6B8EA8" />
+          <rect x="246" y="26" width="32" height="22" fill="#FCF8F2" />
+          <rect x="282" y="26" width="32" height="22" fill="#FCF8F2" />
+          <rect x="246" y="52" width="32" height="22" fill="#FCF8F2" />
+          <rect x="282" y="52" width="32" height="22" fill="#FCF8F2" />
+          <!-- Landscape in window: hills & sun -->
+          <circle cx="295" cy="40" r="6" fill="#DEB059" />
+          <path d="M 246 48 L 265 40 L 278 48 Z" fill="#7BA582" />
+          <path d="M 270 48 L 295 36 L 314 48 Z" fill="#638C6A" />
+
+          <!-- Stylized Memphis Desk -->
+          <polygon points="40,160 310,160 280,210 10,210" fill="#E4D8C7" />
+          <rect x="30" y="210" width="12" height="30" fill="#2E2721" />
+          <rect x="268" y="210" width="12" height="30" fill="#2E2721" />
+
+          <!-- Paper stacks on desk -->
+          <rect x="60" y="145" width="40" height="15" rx="3" fill="#FFFFFF" stroke="#2E2721" stroke-width="2" />
+          <rect x="62" y="141" width="36" height="4" rx="1" fill="#6B8EA8" />
+          
+          <!-- Vaccine cooler box (dynamic details) -->
+          <rect x="230" y="130" width="65" height="50" rx="8" fill="#F6F1EC" stroke="#2E2721" stroke-width="3.5" />
+          <rect x="228" y="123" width="69" height="10" rx="4" fill="#6B8EA8" stroke="#2E2721" stroke-width="3.5" />
+          <rect x="250" y="145" width="25" height="20" rx="4" fill="#C96868" />
+          <circle cx="262" cy="155" r="4" fill="#FFF" />
+          
+          <!-- Stylized Human Figure (Corporate Memphis) -->
+          <!-- Torso -->
+          <path d="M 120 180 C 120 120, 180 120, 180 180 Z" fill="#6B8EA8" />
+          <!-- Neck -->
+          <rect x="144" y="110" width="12" height="15" fill="#E08585" />
+          <!-- Head -->
+          <circle cx="150" cy="98" r="18" fill="#E08585" />
+          <!-- Hair -->
+          <path d="M 132 95 C 132 80, 168 80, 168 95 Z" fill="#2E2721" />
+          <!-- Eye dots -->
+          <circle cx="144" cy="98" r="2" fill="#2E2721" />
+          <circle cx="156" cy="98" r="2" fill="#2E2721" />
+          <!-- Glasses -->
+          <rect x="138" y="93" width="24" height="6" rx="2" fill="none" stroke="#2E2721" stroke-width="2" />
+          <!-- Arm pointing to screen -->
+          <path d="M 170 145 C 190 145, 215 130, 218 135 C 220 140, 195 155, 170 155 Z" fill="#E08585" />
+          <!-- Desk plant -->
+          <path d="M 12 160 Q 2 130 15 120 Q 25 130 15 160 Z" fill="#7BA582" />
+          <path d="M 25 160 Q 35 140 28 130 Q 18 140 25 160 Z" fill="#638C6A" />
+          <path d="M 2 160 Q -10 150 -4 140 Q 6 150 2 160 Z" fill="#7BA582" />
+          <!-- Pot -->
+          <polygon points="-2,160 32,160 26,180 4,180" fill="#D67657" stroke="#2E2721" stroke-width="2.5" />
+        </svg>
+      </div>
+    </div>
 
     <!-- ═══════════════════════════════════════════
          SECTION 1: VACCINE CONTAINER OVERVIEW
@@ -728,7 +829,20 @@
       <div class="grid-3">
         <!-- Door Status -->
         <div class="door-status-card closed" id="door-status-card">
-          <div class="door-icon" id="door-icon">🔒</div>
+          <div class="door-icon" id="door-icon">
+            <svg width="90" height="90" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;margin:0 auto;">
+              <!-- Main Box Body -->
+              <rect x="8" y="24" width="48" height="32" rx="4" fill="#6B8EA8" />
+              <!-- Lid -->
+              <rect x="6" y="16" width="52" height="8" rx="2" fill="#4E738E" />
+              <!-- Latch Closed -->
+              <rect x="28" y="22" width="8" height="12" rx="2" fill="#7BA582" />
+              <circle cx="32" cy="28" r="2" fill="#FFFFFF" />
+              <!-- Handles -->
+              <rect x="2" y="32" width="6" height="12" rx="2" fill="#2E2721" />
+              <rect x="56" y="32" width="6" height="12" rx="2" fill="#2E2721" />
+            </svg>
+          </div>
           <div class="door-status-text" id="door-status-text">DOOR CLOSED</div>
           <div style="font-size:.7rem;color:var(--clr-text-muted);margin-top:.4rem;">MC38 Magnetic Reed Switch · VB-001</div>
           <div style="margin-top:1.25rem;display:flex;gap:.75rem;justify-content:center;">

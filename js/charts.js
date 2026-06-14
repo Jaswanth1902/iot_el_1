@@ -50,13 +50,15 @@ function initTempChart(range, vaccine) {
   const { labels, data, min, max } = generateTempData(range, vaccine);
   const ctx = document.getElementById('tempChart').getContext('2d');
 
-  // Gradient fill
-  const grad = ctx.createLinearGradient(0, 0, 0, 200);
-  grad.addColorStop(0, 'rgba(66,165,245,.35)');
-  grad.addColorStop(1, 'rgba(66,165,245,.0)');
-
-  const alertColor   = 'rgba(244,67,54,.7)';
-  const normalColor  = 'rgba(66,165,245,1)';
+  const styles = getComputedStyle(document.body);
+  const normalColor = styles.getPropertyValue('--clr-blue').trim() || '#6B8EA8';
+  const alertColor = styles.getPropertyValue('--clr-red').trim() || '#C96868';
+  const warningColor = styles.getPropertyValue('--clr-orange').trim() || '#DEB059';
+  const textColor = styles.getPropertyValue('--clr-text').trim() || '#2E2721';
+  const axisColor = styles.getPropertyValue('--clr-text-dim').trim() || '#5E5247';
+  const gridColor = styles.getPropertyValue('--clr-border').trim() || '#E4D8C7';
+  const tooltipBg = styles.getPropertyValue('--clr-card').trim() || '#FFFFFF';
+  const tooltipBorder = styles.getPropertyValue('--clr-shadow').trim() || '#2E2721';
 
   const pointColors = data.map(v => (v < min || v > max) ? alertColor : normalColor);
 
@@ -67,9 +69,9 @@ function initTempChart(range, vaccine) {
         label: 'Temperature (°C)',
         data,
         fill: true,
-        backgroundColor: grad,
+        backgroundColor: normalColor + '15', // Flat 8% opacity fill
         borderColor: normalColor,
-        borderWidth: 2,
+        borderWidth: 3,
         tension: .4,
         pointBackgroundColor: pointColors,
         pointBorderColor: 'transparent',
@@ -79,9 +81,9 @@ function initTempChart(range, vaccine) {
       {
         label: `Max Safe (${max}°C)`,
         data: Array(data.length).fill(max),
-        borderColor: 'rgba(244,67,54,.5)',
-        borderWidth: 1.5,
-        borderDash: [5, 4],
+        borderColor: alertColor,
+        borderWidth: 2,
+        borderDash: [6, 6],
         fill: false,
         pointRadius: 0,
         tension: 0,
@@ -89,9 +91,9 @@ function initTempChart(range, vaccine) {
       {
         label: `Min Safe (${min}°C)`,
         data: Array(data.length).fill(min),
-        borderColor: 'rgba(255,152,0,.5)',
-        borderWidth: 1.5,
-        borderDash: [5, 4],
+        borderColor: warningColor,
+        borderWidth: 2,
+        borderDash: [6, 6],
         fill: false,
         pointRadius: 0,
         tension: 0,
@@ -99,22 +101,12 @@ function initTempChart(range, vaccine) {
     ]
   };
 
-  const isLight = document.body.classList.contains('light-theme');
-  const textColor = isLight ? '#475569' : '#8bacc8';
-  const axisColor = isLight ? '#64748b' : '#4a6a8a';
-  const gridColor = isLight ? 'rgba(209,219,231,.5)' : 'rgba(26,58,92,.3)';
-  const tooltipBg = isLight ? 'rgba(255,255,255,.98)' : 'rgba(7,20,40,.95)';
-  const tooltipBorder = isLight ? 'rgba(209,219,231,1)' : 'rgba(66,165,245,.3)';
-  const tooltipText = isLight ? '#0f172a' : '#8bacc8';
-  const tooltipTitle = isLight ? '#0f172a' : '#fff';
-
   if (tempChart) {
     tempChart.data = chartData;
-    // Update theme properties on the existing chart
     tempChart.options.plugins.legend.labels.color = textColor;
     tempChart.options.plugins.tooltip.backgroundColor = tooltipBg;
-    tempChart.options.plugins.tooltip.bodyColor = tooltipText;
-    tempChart.options.plugins.tooltip.titleColor = tooltipTitle;
+    tempChart.options.plugins.tooltip.bodyColor = axisColor;
+    tempChart.options.plugins.tooltip.titleColor = textColor;
     tempChart.options.plugins.tooltip.borderColor = tooltipBorder;
     tempChart.options.scales.x.ticks.color = axisColor;
     tempChart.options.scales.x.grid.color = gridColor;
@@ -138,17 +130,17 @@ function initTempChart(range, vaccine) {
           align: 'end',
           labels: {
             color: textColor,
-            font: { size: 10, family: 'Inter' },
+            font: { size: 11, family: 'Outfit' },
             boxWidth: 14,
             padding: 10,
           }
         },
         tooltip: {
           backgroundColor: tooltipBg,
-          titleColor: tooltipTitle,
-          bodyColor: tooltipText,
+          titleColor: textColor,
+          bodyColor: axisColor,
           borderColor: tooltipBorder,
-          borderWidth: 1,
+          borderWidth: 2,
           padding: 10,
           callbacks: {
             label: ctx => {
@@ -162,11 +154,11 @@ function initTempChart(range, vaccine) {
       },
       scales: {
         x: {
-          ticks: { color: axisColor, font: { size: 9 }, maxTicksLimit: 10 },
+          ticks: { color: axisColor, font: { size: 10, family: 'Outfit' }, maxTicksLimit: 10 },
           grid: { color: gridColor },
         },
         y: {
-          ticks: { color: axisColor, font: { size: 9 }, callback: v => `${v}°C` },
+          ticks: { color: axisColor, font: { size: 10, family: 'Outfit' }, callback: v => `${v}°C` },
           grid: { color: gridColor },
         }
       }
@@ -181,21 +173,17 @@ function updateTempChart(range, vaccine) {
 
 // ── Mini Sparkline for KPI Cards ───────────────────────────
 let miniCharts = {};
-function initMiniChart(canvasId, color = '#42a5f5') {
+function initMiniChart(canvasId, color = '#6B8EA8') {
   const canvas = document.getElementById(canvasId);
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
   const pts = Array.from({ length: 12 }, () => Math.random() * 30 + 50);
 
-  const grad = ctx.createLinearGradient(0, 0, 0, 40);
-  grad.addColorStop(0, color + '55');
-  grad.addColorStop(1, color + '00');
-
   miniCharts[canvasId] = new Chart(ctx, {
     type: 'line',
     data: {
       labels: pts.map((_, i) => i),
-      datasets: [{ data: pts, borderColor: color, borderWidth: 1.5, fill: true, backgroundColor: grad, pointRadius: 0, tension: .4 }]
+      datasets: [{ data: pts, borderColor: color, borderWidth: 2, fill: true, backgroundColor: color + '15', pointRadius: 0, tension: .4 }]
     },
     options: {
       responsive: false, maintainAspectRatio: false,
@@ -208,20 +196,17 @@ function initMiniChart(canvasId, color = '#42a5f5') {
 
 function updateChartsTheme(theme) {
   if (!tempChart) return;
-  const isLight = theme === 'light';
-  
-  const textColor = isLight ? '#475569' : '#8bacc8';
-  const axisColor = isLight ? '#64748b' : '#4a6a8a';
-  const gridColor = isLight ? 'rgba(209,219,231,.5)' : 'rgba(26,58,92,.3)';
-  const tooltipBg = isLight ? 'rgba(255,255,255,.98)' : 'rgba(7,20,40,.95)';
-  const tooltipBorder = isLight ? 'rgba(209,219,231,1)' : 'rgba(66,165,245,.3)';
-  const tooltipText = isLight ? '#0f172a' : '#8bacc8';
-  const tooltipTitle = isLight ? '#0f172a' : '#fff';
+  const styles = getComputedStyle(document.body);
+  const textColor = styles.getPropertyValue('--clr-text').trim();
+  const axisColor = styles.getPropertyValue('--clr-text-dim').trim();
+  const gridColor = styles.getPropertyValue('--clr-border').trim();
+  const tooltipBg = styles.getPropertyValue('--clr-card').trim();
+  const tooltipBorder = styles.getPropertyValue('--clr-shadow').trim();
   
   tempChart.options.plugins.legend.labels.color = textColor;
   tempChart.options.plugins.tooltip.backgroundColor = tooltipBg;
-  tempChart.options.plugins.tooltip.bodyColor = tooltipText;
-  tempChart.options.plugins.tooltip.titleColor = tooltipTitle;
+  tempChart.options.plugins.tooltip.bodyColor = axisColor;
+  tempChart.options.plugins.tooltip.titleColor = textColor;
   tempChart.options.plugins.tooltip.borderColor = tooltipBorder;
   
   tempChart.options.scales.x.ticks.color = axisColor;

@@ -80,7 +80,7 @@ function renderFleetTable() {
     const statusPillClass = box.status;
     const statusPillText = box.status.toUpperCase();
     const tempDotClass = box.status;
-    const doorIcon = box.door === 'open' ? '🔓' : '🔒';
+    const doorIcon = box.door === 'open' ? '<i class="fa-solid fa-lock-open"></i>' : '<i class="fa-solid fa-lock"></i>';
     const doorColor = box.door === 'open' ? 'var(--clr-red-lt)' : 'var(--clr-green)';
 
     return `

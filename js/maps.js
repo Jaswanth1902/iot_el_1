@@ -26,37 +26,45 @@ function vehicleIcon() {
   return L.divIcon({
     className: '',
     html: `<div style="
-      width:36px;height:36px;
-      background:linear-gradient(135deg,#1565c0,#00bcd4);
-      border-radius:50% 50% 50% 0;
-      transform:rotate(-45deg);
-      box-shadow:0 0 20px rgba(0,188,212,.6);
-      border:3px solid #fff;
+      width:44px;height:44px;
       display:flex;align-items:center;justify-content:center;
-    "><span style="transform:rotate(45deg);font-size:14px;">🚛</span></div>`,
-    iconSize: [36, 36],
-    iconAnchor: [18, 36],
+      filter: drop-shadow(3px 3px 0px #2E2721);
+    ">
+      <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Truck body -->
+        <rect x="2" y="10" width="24" height="20" rx="3" fill="#6B8EA8" />
+        <rect x="26" y="16" width="12" height="14" rx="2" fill="#4E738E" />
+        <!-- Window -->
+        <rect x="28" y="18" width="8" height="6" rx="1" fill="#FCF8F2" />
+        <!-- Wheels -->
+        <circle cx="8" cy="30" r="4" fill="#2E2721" />
+        <circle cx="30" cy="30" r="4" fill="#2E2721" />
+      </svg>
+    </div>`,
+    iconSize: [44, 44],
+    iconAnchor: [22, 22],
   });
 }
 
 function waypointIcon(type, active = false) {
   const icons = { warehouse:'🏭', hub:'📦', checkpoint:'🔰', hospital:'🏥', center:'💉' };
-  const colors = { warehouse:'#1565c0', hub:'#00bcd4', checkpoint:'#ff9800', hospital:'#f44336', center:'#00e676' };
-  const color = colors[type] || '#42a5f5';
+  const colors = { warehouse:'#6B8EA8', hub:'#6FAAA3', checkpoint:'#DEB059', hospital:'#C96868', center:'#7BA582' };
+  const color = colors[type] || '#6B8EA8';
+  const size = active ? 36 : 28;
   return L.divIcon({
     className: '',
     html: `<div style="
-      width:${active?'32':'26'}px;height:${active?'32':'26'}px;
-      background:${color}22;
-      border:2px solid ${color};
+      width:${size}px;height:${size}px;
+      background:${color};
       border-radius:50%;
       display:flex;align-items:center;justify-content:center;
-      font-size:${active?'14':'11'}px;
-      box-shadow:0 0 ${active?'14':'6'}px ${color}66;
-      transition:all .3s;
+      font-size:${active?'15':'12'}px;
+      box-shadow: 3px 3px 0px #2E2721;
+      border: 2px solid #2E2721;
+      transition: all .2s;
     ">${icons[type] || '📍'}</div>`,
-    iconSize: [active ? 32 : 26, active ? 32 : 26],
-    iconAnchor: [(active ? 32 : 26) / 2, (active ? 32 : 26) / 2],
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
   });
 }
 
@@ -73,8 +81,8 @@ function initMap() {
   const isLight = document.body.classList.contains('light-theme');
   tileLayer = L.tileLayer(
     isLight 
-      ? 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
-      : 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', 
+      ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png' 
+      : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', 
     {
       maxZoom: 19,
       attribution: '© CartoDB'
@@ -87,18 +95,18 @@ function initMap() {
   // Draw route polyline
   const routeCoords = ROUTE_WAYPOINTS.map(wp => [wp.lat, wp.lng]);
   routePolyline = L.polyline(routeCoords, {
-    color: '#42a5f5',
-    weight: 3.5,
-    opacity: .75,
-    dashArray: '8 6',
+    color: '#2E2721', // Dark solid route line
+    weight: 4,
+    opacity: .85,
+    dashArray: '8 8',
     lineJoin: 'round',
   }).addTo(leafletMap);
 
   // Completed portion overlay
   L.polyline(routeCoords.slice(0, 2), {
-    color: '#00e676',
-    weight: 4,
-    opacity: .85,
+    color: '#7BA582', // Sage green completed path
+    weight: 5,
+    opacity: .95,
   }).addTo(leafletMap);
 
   // Waypoint markers
@@ -106,9 +114,9 @@ function initMap() {
     const active = idx === 1; // currently at hub
     const marker = L.marker([wp.lat, wp.lng], { icon: waypointIcon(wp.type, active) }).addTo(leafletMap);
     marker.bindPopup(`
-      <div style="font-family:Inter,sans-serif;padding:4px 0;">
-        <strong style="color:#42a5f5;">${wp.name}</strong><br>
-        <span style="font-size:.75rem;color:#8bacc8;">
+      <div style="font-family:Outfit,sans-serif;padding:4px 0;font-weight:700;">
+        <strong style="color:#4E738E;font-size:0.85rem;">${wp.name}</strong><br>
+        <span style="font-size:.72rem;color:#5E5247;font-family:JetBrains Mono;">
           ${wp.lat.toFixed(4)}°N, ${wp.lng.toFixed(4)}°E
         </span>
       </div>
@@ -120,12 +128,12 @@ function initMap() {
     [ROUTE_WAYPOINTS[1].lat, ROUTE_WAYPOINTS[1].lng],
     {
       radius: GEOFENCE_RADIUS_KM * 1000,
-      color: '#1e88e5',
-      weight: 1.5,
-      opacity: .4,
-      fillColor: '#42a5f5',
-      fillOpacity: .05,
-      dashArray: '6 4',
+      color: '#6B8EA8',
+      weight: 2,
+      opacity: .6,
+      fillColor: '#6B8EA8',
+      fillOpacity: .1,
+      dashArray: '6 6',
     }
   ).addTo(leafletMap);
 
@@ -134,9 +142,9 @@ function initMap() {
   vehicleMarker = L.marker([startPos.lat, startPos.lng], { icon: vehicleIcon() })
     .addTo(leafletMap)
     .bindPopup(`
-      <div style="font-family:Inter,sans-serif;">
-        <strong style="color:#42a5f5;">Vaccine Transport Vehicle</strong><br>
-        <span style="font-size:.75rem;color:#8bacc8;">Speed: 42 km/h · ETA: 35 min</span>
+      <div style="font-family:Outfit,sans-serif;font-weight:700;">
+        <strong style="color:#4E738E;font-size:0.85rem;">Vaccine Transport</strong><br>
+        <span style="font-size:.72rem;color:#5E5247;">Speed: 42 km/h · ETA: 35 min</span>
       </div>
     `);
 
@@ -208,7 +216,7 @@ function setEl(id, val) {
 function updateMapTileLayer(theme) {
   if (!leafletMap || !tileLayer) return;
   const url = theme === 'light'
-    ? 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
-    : 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+    ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+    : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
   tileLayer.setUrl(url);
 }

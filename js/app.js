@@ -480,13 +480,12 @@ function attachFirebaseListeners() {
         setDoorStatus(data.door === "OPEN" ? "open" : "closed");
       }
 
-      // 3. Update GPS marker & map overlay
+      // 3. Update GPS marker & map overlay (dynamic path)
       if (data.latitude !== undefined && data.longitude !== undefined) {
-        if (vehicleMarker) {
+        if (typeof addGpsLocation === 'function') {
+          addGpsLocation(parseFloat(data.latitude), parseFloat(data.longitude));
+        } else if (vehicleMarker) {
           vehicleMarker.setLatLng([data.latitude, data.longitude]);
-        }
-        if (typeof updateMapOverlay === 'function') {
-          updateMapOverlay(data.latitude, data.longitude);
         }
       }
 

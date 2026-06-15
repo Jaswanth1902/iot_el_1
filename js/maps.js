@@ -9,14 +9,15 @@ let geofenceCircle = null;
 let tileLayer = null;
 let routeIndex = 0;
 let mapAnimInterval = null;
+let travelledPath = [];
+let travelledPolyline = null;
 
-// ── Route Waypoints (Delhi → Hospital Demo) ─────────────────
+// ── Route Waypoints (Bangalore JP Nagar → Banashankari Demo) ─────────────────
 const ROUTE_WAYPOINTS = [
-  { lat: 28.6448, lng: 77.2167, name: "Central Vaccine Warehouse", type: "warehouse" },
-  { lat: 28.6292, lng: 77.2182, name: "Regional Distribution Hub", type: "hub" },
-  { lat: 28.6139, lng: 77.2090, name: "Cold Chain Checkpoint", type: "checkpoint" },
-  { lat: 28.5985, lng: 77.2178, name: "AIIMS Hospital", type: "hospital" },
-  { lat: 28.5921, lng: 77.2100, name: "PHC Vaccination Center", type: "center" },
+  { lat: 12.9100, lng: 77.5200, name: "Central Vaccine Warehouse", type: "warehouse" },
+  { lat: 12.9130, lng: 77.5100, name: "Regional Distribution Hub", type: "hub" },
+  { lat: 12.9170, lng: 77.5000, name: "Cold Chain Checkpoint", type: "checkpoint" },
+  { lat: 12.9200, lng: 77.4900, name: "AIIMS Hospital", type: "hospital" },
 ];
 
 const GEOFENCE_RADIUS_KM = 2.5;
@@ -75,7 +76,7 @@ function initMap() {
   leafletMap = L.map('leaflet-map', {
     zoomControl: true,
     attributionControl: false,
-  }).setView([ROUTE_WAYPOINTS[1].lat, ROUTE_WAYPOINTS[1].lng], 13);
+  }).setView([ROUTE_WAYPOINTS[0].lat, ROUTE_WAYPOINTS[0].lng], 13);
 
   // Theme-aware tile layer
   const isLight = document.body.classList.contains('light-theme');
@@ -102,8 +103,9 @@ function initMap() {
     lineJoin: 'round',
   }).addTo(leafletMap);
 
-  // Completed portion overlay
-  L.polyline(routeCoords.slice(0, 2), {
+  // Completed portion overlay (traveled path tracked dynamically)
+  travelledPath = [[ROUTE_WAYPOINTS[0].lat, ROUTE_WAYPOINTS[0].lng]];
+  travelledPolyline = L.polyline(travelledPath, {
     color: '#7BA582', // Sage green completed path
     weight: 5,
     opacity: .95,
@@ -111,7 +113,7 @@ function initMap() {
 
   // Waypoint markers
   ROUTE_WAYPOINTS.forEach((wp, idx) => {
-    const active = idx === 1; // currently at hub
+    const active = idx === 0; // Jayanagar is active start
     const marker = L.marker([wp.lat, wp.lng], { icon: waypointIcon(wp.type, active) }).addTo(leafletMap);
     marker.bindPopup(`
       <div style="font-family:Outfit,sans-serif;padding:4px 0;font-weight:700;">
@@ -125,7 +127,7 @@ function initMap() {
 
   // Geofence circle around current location
   geofenceCircle = L.circle(
-    [ROUTE_WAYPOINTS[1].lat, ROUTE_WAYPOINTS[1].lng],
+    [ROUTE_WAYPOINTS[0].lat, ROUTE_WAYPOINTS[0].lng],
     {
       radius: GEOFENCE_RADIUS_KM * 1000,
       color: '#6B8EA8',
@@ -137,8 +139,8 @@ function initMap() {
     }
   ).addTo(leafletMap);
 
-  // Vehicle marker at initial position
-  const startPos = interpolatePosition(ROUTE_WAYPOINTS[0], ROUTE_WAYPOINTS[1], .6);
+  // Vehicle marker at initial position (Jayanagar start)
+  const startPos = { lat: ROUTE_WAYPOINTS[0].lat, lng: ROUTE_WAYPOINTS[0].lng };
   vehicleMarker = L.marker([startPos.lat, startPos.lng], { icon: vehicleIcon() })
     .addTo(leafletMap)
     .bindPopup(`
@@ -169,31 +171,61 @@ function interpolatePosition(a, b, t) {
 
 function startVehicleAnimation() {
   if (mapAnimInterval) clearInterval(mapAnimInterval);
-  let t = 0.6; // start midway between wp 0 and 1
+  let t = 0.0;
   let segStart = 0; let segEnd = 1;
 
   mapAnimInterval = setInterval(() => {
-    t += 0.002;
+    t += 0.005;
     if (t >= 1) {
       t = 0;
       segStart = (segStart + 1) % (ROUTE_WAYPOINTS.length - 1);
       segEnd   = segStart + 1;
+
+      // Loop animation: reset travelled path to warehouse start
+      if (segStart === 0) {
+        travelledPath = [[ROUTE_WAYPOINTS[0].lat, ROUTE_WAYPOINTS[0].lng]];
+        if (travelledPolyline) {
+          travelledPolyline.setLatLngs(travelledPath);
+        }
+      }
     }
 
     const pos = interpolatePosition(ROUTE_WAYPOINTS[segStart], ROUTE_WAYPOINTS[segEnd], t);
-    if (vehicleMarker) vehicleMarker.setLatLng([pos.lat, pos.lng]);
-
-    // Update sidebar
-    updateMapOverlay(pos.lat, pos.lng);
+    addGpsLocation(pos.lat, pos.lng);
     updateVehicleStats(pos);
-  }, 200);
+  }, 250);
+}
+
+function addGpsLocation(lat, lng) {
+  if (!leafletMap) return;
+  const newLatLng = L.latLng(lat, lng);
+
+  // Avoid duplicate points
+  if (travelledPath.length > 0) {
+    const last = travelledPath[travelledPath.length - 1];
+    if (Math.abs(last[0] - lat) < 0.0001 && Math.abs(last[1] - lng) < 0.0001) {
+      return;
+    }
+  }
+
+  travelledPath.push([lat, lng]);
+  if (travelledPolyline) {
+    travelledPolyline.addLatLng(newLatLng);
+  }
+  if (vehicleMarker) {
+    vehicleMarker.setLatLng(newLatLng);
+  }
+  if (geofenceCircle) {
+    geofenceCircle.setLatLng(newLatLng);
+  }
+  updateMapOverlay(lat, lng);
 }
 
 function updateMapOverlay(lat, lng) {
   const el = document.getElementById('map-coords');
   if (el) el.textContent = `${lat.toFixed(4)}°N, ${lng.toFixed(4)}°E`;
   const addr = document.getElementById('map-address');
-  if (addr) addr.textContent = 'En route to AIIMS Hospital, New Delhi';
+  if (addr) addr.textContent = 'En route to AIIMS Hospital, Bangalore';
 }
 
 function updateVehicleStats(pos) {
